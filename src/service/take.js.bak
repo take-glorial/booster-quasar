@@ -1,0 +1,9 @@
+import request from "@/libs/request";
+
+export function transelect(data) {
+  return request({
+    url: "select.do",
+    method: "post",
+    data
+  });
+}

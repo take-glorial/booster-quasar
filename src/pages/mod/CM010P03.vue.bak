@@ -1,0 +1,313 @@
+<template>
+  <div class="q-pa-md q-gutter-sm">
+    <q-dialog
+      persistent
+      v-model="openDialog"
+      :maximized="maximizedToggle"
+      transition-show="slide-up"
+      transition-hide="slide-down"
+    >
+      <q-card style="min-height:50vh; min-width: 60vw">
+        <q-bar class="bg-primary text-white">
+          <q-item-label>공지사항 수정</q-item-label>
+          <q-space />
+          align='right', qdialog extend 변경해볼것
+          <q-btn
+            dense
+            flat
+            icon="minimize"
+            @click="maximizedToggle = false"
+            :disable="!maximizedToggle"
+          >
+            <q-tooltip
+              v-if="maximizedToggle"
+              content-class="bg-white text-primary"
+              >Minimize</q-tooltip
+            >
+          </q-btn>
+          <q-btn
+            dense
+            flat
+            icon="crop_square"
+            @click="maximizedToggle = true"
+            :disable="maximizedToggle"
+          >
+            <q-tooltip
+              v-if="!maximizedToggle"
+              content-class="bg-white text-primary"
+              >Maximize</q-tooltip
+            >
+          </q-btn>
+          <q-btn dense flat icon="close" @click="fnClose">
+            <q-tooltip content-class="bg-white text-primary">Close</q-tooltip>
+          </q-btn>
+        </q-bar>
+
+        <form
+          autocorrect="off"
+          autocapitalize="off"
+          autocomplete="off"
+          spellcheck="false"
+        >
+          <q-card-section>
+            <q-input v-model="boardInfo.board_title" label="제목" />
+          </q-card-section>
+
+          <q-card-section class="q-pt-none" style="height: 50vh">
+            <span>https://tiptap.dev/ tiptab으로 변경여부 체크</span>
+            <q-editor
+              v-model="boardInfo.board_txt"
+              ref="editor_ref"
+              height="35vh"
+              @paste.native="evt => pasteCapture(evt)"
+              :toolbar="[
+                ['left', 'center', 'right', 'justify'],
+                ['bold', 'italic', 'underline', 'strike'],
+                ['undo', 'redo'],
+                ['customimagethingie'],
+                ['print', 'fullscreen'],
+                [
+                  {
+                    icon: $q.iconSet.editor.formatting,
+                    fixedLabel: true,
+                    fixedIcon: true,
+                    list: 'no-icons',
+                    options: ['p', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6', 'code']
+                  },
+                  {
+                    icon: $q.iconSet.editor.fontSize,
+                    fixedLabel: true,
+                    fixedIcon: true,
+                    list: 'no-icons',
+                    options: [
+                      'size-1',
+                      'size-2',
+                      'size-3',
+                      'size-4',
+                      'size-5',
+                      'size-6',
+                      'size-7'
+                    ]
+                  },
+                  {
+                    icon: $q.iconSet.editor.font,
+                    fixedLabel: true,
+                    fixedIcon: true,
+                    list: 'no-icons',
+                    options: [
+                      'default_font',
+                      'arial',
+                      'arial_black',
+                      'comic_sans',
+                      'courier_new',
+                      'impact',
+                      'lucida_grande',
+                      'times_new_roman',
+                      'verdana'
+                    ]
+                  },
+                  'removeFormat'
+                ],
+                ['quote', 'unordered', 'ordered', 'outdent', 'indent'],
+                ['viewsource']
+              ]"
+              :fonts="{
+                arial: 'Arial',
+                arial_black: 'Arial Black',
+                comic_sans: 'Comic Sans MS',
+                courier_new: 'Courier New',
+                impact: 'Impact',
+                lucida_grande: 'Lucida Grande',
+                times_new_roman: 'Times New Roman',
+                verdana: 'Verdana'
+              }"
+            >
+              <template v-slot:customimagethingie>
+                <q-btn
+                  dense
+                  no-caps
+                  flat
+                  ref="custom"
+                  icon="insert_photo"
+                  size="sm"
+                  @click="insertImg"
+                >
+                </q-btn>
+              </template>
+            </q-editor>
+          </q-card-section>
+        </form>
+        <div class="absolute-bottom text-subtitle1 text-center">
+          <q-card-actions
+            align="right"
+            class="bg-primary text-white"
+            position="bottom"
+          >
+            <q-btn
+              color="white"
+              text-color="black"
+              label="Save"
+              @click="fnSave"
+            />
+            <q-btn
+              color="white"
+              text-color="black"
+              label="Delete"
+              @click="fnDelete"
+            />
+            <q-btn
+              color="white"
+              text-color="black"
+              label="Close"
+              @click="fnClose"
+            />
+          </q-card-actions>
+        </div>
+      </q-card>
+    </q-dialog>
+  </div>
+</template>
+
+<script>
+import * as take from "@/libs/take";
+export default {
+  name: "BoardPopup",
+  props: {
+    selectedInfo: {
+      type: Object,
+      required: true
+    },
+    openDialog: {
+      type: Boolean,
+      required: false,
+      default: true
+    }
+  },
+  data() {
+    return {
+      maximizedToggle: false,
+      boardInfo: {},
+      definitions: {
+        insert_img: {
+          tip: "Insertar Imagen",
+          icon: "photo",
+          handler: this.insertImg // handler will call insertImg() method
+        }
+      }
+    };
+  },
+  methods: {
+    fnSearch() {
+      const data = [
+        {
+          aNameSpace: "BoardManagement.boardInfoDetail",
+          sInDs: "noticeList",
+          sParam: {
+            project_cd: this.selectedInfo.project_cd,
+            menu_cd: this.selectedInfo.menu_cd,
+            board_seq: this.selectedInfo.board_seq
+          }
+        }
+      ];
+
+      take.transelect(data).then(res => {
+        this.boardInfo = res.data.data.noticeList[0];
+      });
+    },
+    fnSave() {
+      const data = [
+        {
+          aNameSpace: "BoardManagement.boardInfoUpdate",
+          oOutDs: this.boardInfo,
+          sParam: {
+            project_cd: this.boardInfo.project_cd,
+            menu_cd: this.boardInfo.menu_cd,
+            board_seq: this.boardInfo.board_seq
+          }
+        }
+      ];
+
+      take.transave(data).then(res => {});
+    },
+    fnDelete() {
+      const data = [
+        {
+          aNameSpace: "BoardManagement.boardInfoDelete",
+          oOutDs: this.boardInfo,
+          sParam: {
+            project_cd: this.boardInfo.project_cd,
+            menu_cd: this.boardInfo.menu_cd,
+            board_seq: this.boardInfo.board_seq
+          }
+        }
+      ];
+
+      take.transave(data).then(res => {});
+    },
+    fnClose() {
+      this.$popup
+        .close(this)
+        .then(r => {
+          //success
+        })
+        .catch(err => {
+          //error
+        });
+      this.maximizedToggle = false;
+      //this.$emit("update:openDialog", false);
+    },
+    pasteCapture(evt) {
+      let text, onPasteStripFormattingIEPaste;
+      evt.preventDefault();
+      if (evt.originalEvent && evt.originalEvent.clipboardData.getData) {
+        text = evt.originalEvent.clipboardData.getData("text/plain");
+        this.$refs.editor_ref.runCmd("insertText", text);
+      } else if (evt.clipboardData && evt.clipboardData.getData) {
+        text = evt.clipboardData.getData("text/plain");
+        this.$refs.editor_ref.runCmd("insertText", text);
+      } else if (window.clipboardData && window.clipboardData.getData) {
+        if (!onPasteStripFormattingIEPaste) {
+          onPasteStripFormattingIEPaste = true;
+          this.$refs.editor_ref.runCmd("ms-pasteTextOnly", text);
+        }
+        onPasteStripFormattingIEPaste = false;
+      }
+    },
+    insertImg() {
+      // insertImg method
+      let post = this.boardInfo;
+      // create an input file element to open file dialog
+      const input = document.createElement("input");
+      const editor = this.$refs.editor_ref;
+      input.type = "file";
+      input.accept = ".png, .jpg, .gif"; // file extensions allowed
+      let file;
+      input.onchange = function() {
+        const files = Array.from(input.files);
+        file = files[0];
+
+        // lets load the file as dataUrl
+        const reader = new FileReader();
+        let dataUrl = "";
+        reader.onloadend = () => {
+          dataUrl = reader.result;
+          editor.caret.restore();
+          editor.runCmd(
+            "insertHTML",
+            '<div><img src="' + dataUrl + '" /></div>'
+          );
+          editor.focus();
+        };
+        reader.readAsDataURL(file);
+      };
+      input.click();
+    }
+  },
+  mounted() {
+    setTimeout(() => {
+      this.fnSearch();
+    }, 200);
+  },
+  created() {}
+};
+</script>

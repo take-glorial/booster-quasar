@@ -1,0 +1,189 @@
+<template>
+  <div>
+    <q-btn
+      color="primary"
+      icon="check"
+      label="test페이지 생성"
+      @click="addRoutes"
+    />
+    <q-btn
+      color="primary"
+      icon="check"
+      label="M0002페이지 생성"
+      @click="addRoutesy"
+    />
+    <br />
+    <q-btn
+      color="primary"
+      icon="check"
+      label="test이동"
+      @click="move('test')"
+    />
+    <br />
+    <q-btn
+      color="primary"
+      icon="check"
+      label="M0003이동"
+      @click="move('M0003')"
+    />
+    <br />
+    <q-btn color="primary" icon="check" label="main2" @click="move('main2')" />
+    <br />
+    <q-btn
+      color="primary"
+      icon="check"
+      label="consolelog"
+      @click="consolelog"
+    />
+  </div>
+</template>
+
+<script>
+import Layout from "layouts/main.vue";
+import { resetRouter, makeRouter } from "@/router";
+import { routes } from "@/router/routes";
+
+export default {
+  created: function() {
+    console.log("inside created");
+    const childRouters = this.makeRouter(this.$store.state.user.menuInfo);
+    const rootRouters = [
+      {
+        path: "/",
+        name: "registered",
+        component: Layout,
+        children: childRouters
+      }
+    ];
+    //this.$router.addRoutes(rootRouters);
+  },
+  methods: {
+    async addRoutes() {
+      this.$router.addRoutes([
+        {
+          name: "test",
+          component: { template: "<div>바보</div>" },
+          path: "/test"
+        }
+      ]);
+    },
+    async addRoutesx() {
+      const named = "M0002";
+      this.$router.addRoutes([
+        {
+          name: "M0002",
+          component: () => import(`@/pages/sys/${named}.vue`),
+          path: "/M0002"
+        }
+      ]);
+    },
+    async addRoutesy() {
+      //new Promise(resolve => setTimeout(() =>
+      //resolve(import(/* webpackChunkName: 'logo' */'../components/Logo.vue')), 5000))
+      const named = "M0002";
+      this.$router.addRoutes([
+        {
+          name: "M0002",
+          component: new Promise(resolve =>
+            setTimeout(
+              () =>
+                resolve(
+                  import(
+                    /* webpackChunkName: 'M0003' */ "@/pages/sys/M0003.vue"
+                  )
+                ),
+              5000
+            )
+          ),
+          path: "/M0002"
+        }
+      ]);
+    },
+
+    consolelog() {
+      console.log(this.$router.options.routes);
+      console.dir(this.$router.matcher);
+    },
+    move(name) {
+      this.$router.push({ name });
+    },
+
+    makeRouter: function rMakeRouter(menuInfos) {
+      const fmRouters = [];
+
+      if (Array.isArray(menuInfos)) {
+        menuInfos.forEach(menuInfo => {
+          let {
+            menu_cd,
+            menu_nm,
+            parent_menu,
+            menu_type,
+            menu_url,
+            program_prefix
+          } = menuInfo;
+          parent_menu = parent_menu || "0";
+
+          let children = [];
+          if (menu_type !== "02") {
+            //재귀함수
+            children = rMakeRouter(menuInfo);
+            fmRouters[fmRouters.length - 1].children.push(children[0]);
+          } else {
+            const pageUrl = `/src/pages/${program_prefix}/${menu_url}.vue`;
+            const fmRouter = {
+              path: "/" + menu_cd,
+              component: () => {
+                return import(pageUrl);
+              },
+              name: menu_cd,
+              children,
+              meta: {
+                title: menu_nm
+              }
+            };
+
+            fmRouters.push(fmRouter);
+          }
+        });
+      } else {
+        let {
+          menu_cd,
+          menu_nm,
+          parent_menu,
+          menu_type,
+          menu_url,
+          program_prefix
+        } = menuInfos;
+        parent_menu = parent_menu || "0";
+        const pageUrl = `/src/pages/${program_prefix}/${menu_url}.vue`;
+        const fmRouter = {
+          path: "/" + menu_cd,
+          component: () => (menu_type !== "02" ? import(pageUrl) : Layout),
+          name: menu_cd,
+          children: [],
+          meta: {
+            title: menu_nm
+          }
+        };
+
+        fmRouters.push(fmRouter);
+      }
+
+      return fmRouters;
+    },
+    getPageUrl(menu_type, menuprefix, menuurl) {
+      return menu_type !== "02"
+        ? `@/pages/${menuprefix}/${menuurl}.vue`
+        : `@/layouts/main.vue`;
+    },
+    parsingPageUrl(strings, mtype, mprefix, murl) {
+      console.log("mtype", mtype + "/" + mprefix + "/" + murl);
+      return mtype !== "02"
+        ? `@/pages/${mprefix}/${murl}.vue`
+        : `@/layouts/main.vue`;
+    }
+  }
+};
+</script>
+
+<style lang="scss" scoped></style>

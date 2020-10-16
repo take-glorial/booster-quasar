@@ -1,0 +1,150 @@
+<template>
+  <div class="full-width row wrap justify-center content-center">
+    <div class="col-10" style="padding:10px 0px">
+      <q-img src="@/assets/img_WF_mainBg01.png" />
+    </div>
+
+    <div class="col-5 board" style="padding:10px 10px;min-width:35vh">
+      <q-table
+        title="공지사항"
+        :data="noticeList"
+        :columns="columnInfo"
+        row-key="board_seq"
+        hide-header
+        hide-bottom
+        class="no-shadow"
+      >
+        <template v-slot:top-right>
+          <q-btn
+            flat
+            round
+            dense
+            icon="more_horiz"
+            @click="viewdetail('M0028')"
+          />
+        </template>
+        <template v-slot:body="props">
+          <q-tr
+            class="cursor-pointer"
+            :props="props"
+            @click.native="onRowClick(props.row)"
+          >
+            <q-td key="board_title" :props="props">
+              {{ props.row.board_title }}
+            </q-td>
+            <q-td key="reg_dt" :props="props">
+              {{ formatDate(props.row.reg_dt) }}
+            </q-td>
+          </q-tr>
+        </template>
+      </q-table>
+    </div>
+
+    <div
+      class="col-10 q-col-gutter-none board"
+      style="padding:10px 10px;min-width:35vh"
+    >
+      <q-table
+        title="게시판"
+        :data="boardList"
+        :columns="columnInfo"
+        row-key="board_seq"
+        hide-header
+        hide-bottom
+        class="no-shadow"
+      >
+        <template v-slot:top-right>
+          <q-btn
+            flat
+            round
+            dense
+            icon="more_horiz"
+            @click="viewdetail('M0028')"
+          />
+        </template>
+        <template v-slot:body="props">
+          <q-tr
+            class="cursor-pointer"
+            :props="props"
+            @click.native="onRowClick(props.row)"
+          >
+            <q-td key="board_title" :props="props">
+              {{ props.row.board_title }}
+            </q-td>
+            <q-td key="reg_dt" :props="props">
+              {{ formatDate(props.row.reg_dt) }}
+            </q-td>
+          </q-tr>
+        </template>
+      </q-table>
+    </div>
+
+    <div class="col-10">
+      <board-popup :openDialog.sync="openDialog" :boardInfo="boardInfo" />
+    </div>
+  </div>
+</template>
+
+<script>
+import { getBoardList, boardSelect } from "@/service/mod/CM010";
+import { date } from "quasar";
+import BoardPopup from "@/pages/mod/CM010P02.vue";
+
+export default {
+  components: { BoardPopup },
+  data() {
+    return {
+      columnInfo: [
+        {
+          name: "board_title",
+          label: "board_title",
+          align: "left",
+          field: "board_title"
+        },
+        { name: "reg_dt", label: "reg_dt", align: "center", field: "reg_dt" }
+      ],
+      openDialog: false,
+      noticeList: [],
+      boardList: [],
+      boardInfo: {}
+    };
+  },
+  mounted() {
+    this.request({
+      project_cd: process.env.projectCd,
+      menu_cd: "M0028"
+    });
+  },
+  methods: {
+    async request(query) {
+      let dataRes = await getBoardList(query);
+      this.boardList = dataRes.data.data.boardList;
+      this.noticeList = dataRes.data.data.noticeList;
+    },
+    requestDetail(query) {
+      return boardSelect(query);
+    },
+    async onRowClick(boardInfo) {
+      this.selectedInfo = boardInfo;
+      this.openDialog = !this.openDialog;
+    },
+    formatDate(timeStamp) {
+      return date.formatDate(timeStamp, "YYYY-MM-DD");
+    },
+    viewdetail(sMenuCd) {
+      alert(sMenuCd);
+    },
+    handleClickButton() {
+      this.visible = !this.visible;
+      alert(this.visible);
+    }
+  }
+};
+</script>
+
+<style lang="sass" scoped>
+.board
+  overflow: auto;
+.my-card
+  width: 100%
+</style>

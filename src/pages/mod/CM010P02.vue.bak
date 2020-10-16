@@ -1,0 +1,140 @@
+<template>
+  <div class="q-pa-md q-gutter-sm">
+    <q-dialog
+      persistent
+      v-model="openDialog"
+      :maximized="maximizedToggle"
+      transition-show="slide-up"
+      transition-hide="slide-down"
+    >
+      <q-card style="min-height:50vh; min-width: 60vw">
+        <q-bar class="bg-primary text-white">
+          <q-item-label>공지사항</q-item-label>
+          <q-space />
+
+          <q-btn
+            dense
+            flat
+            icon="minimize"
+            @click="maximizedToggle = false"
+            :disable="!maximizedToggle"
+          >
+            <q-tooltip
+              v-if="maximizedToggle"
+              content-class="bg-white text-primary"
+              >Minimize</q-tooltip
+            >
+          </q-btn>
+          <q-btn
+            dense
+            flat
+            icon="crop_square"
+            @click="maximizedToggle = true"
+            :disable="maximizedToggle"
+          >
+            <q-tooltip
+              v-if="!maximizedToggle"
+              content-class="bg-white text-primary"
+              >Maximize</q-tooltip
+            >
+          </q-btn>
+          <q-btn dense flat icon="close" @click="fnClose">
+            <q-tooltip content-class="bg-white text-primary">Close</q-tooltip>
+          </q-btn>
+        </q-bar>
+
+        <q-card-section>
+          <div class="text-h6">{{ boardInfo.board_title }}</div>
+        </q-card-section>
+
+        <q-card-section class="q-pt-none scroll" style="height: 50vh">
+          <p v-html="boardInfo.board_txt"></p>
+        </q-card-section>
+
+        <div class="absolute-bottom text-subtitle1 text-center">
+          <q-card-actions
+            align="right"
+            class="bg-primary text-white"
+            position="bottom"
+          >
+            <q-btn
+              color="white"
+              text-color="black"
+              label="Edit"
+              @click="fnEdit"
+            />
+            <q-btn
+              color="white"
+              text-color="black"
+              label="Close"
+              @click="fnClose"
+            />
+          </q-card-actions>
+        </div>
+      </q-card>
+    </q-dialog>
+  </div>
+</template>
+
+<script>
+import { boardSelect } from "@/service/mod/CM010";
+import CM010P03 from "@/pages/mod/CM010P03.vue";
+
+export default {
+  name: "BoardPopup",
+  props: {
+    selectedInfo: {
+      type: Object,
+      required: true
+    },
+    openDialog: {
+      type: Boolean,
+      required: false,
+      default: true
+    }
+  },
+  data() {
+    return {
+      maximizedToggle: false,
+      boardInfo: {},
+      replyList: [],
+      fileList: []
+    };
+  },
+  methods: {
+    fnSearch(param) {
+      boardSelect(param).then(res => {
+        this.boardInfo = res.data.data.boardInfo;
+        this.replyList = res.data.data.replyList;
+        this.fileList = res.data.data.fileList;
+      });
+    },
+    fnEdit() {
+      this.$popup.open(CM010P03, {
+        selectedInfo: this.boardInfo
+      });
+      this.fnClose();
+    },
+    fnClose() {
+      this.$root.$emit("close_CM010P02", "OK");
+      this.$popup
+        .close(this)
+        .then(r => {
+          //success
+        })
+        .catch(err => {
+          //error
+        });
+      this.maximizedToggle = false;
+      //this.$emit("update:openDialog", false);
+    }
+  },
+  mounted() {
+    setTimeout(() => {
+      console.log("this.selectedInfo", this.selectedInfo);
+      this.fnSearch(this.selectedInfo);
+    }, 200);
+  },
+  created() {}
+};
+</script>
